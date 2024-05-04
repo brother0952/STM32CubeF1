@@ -383,9 +383,9 @@
           <GroupName>Drivers/BSP/STM32F1xx_Nucleo</GroupName>
           <Files>
             <File>
-              <FileName>stm32f1xx_nucleo.c</FileName>
+              <FileName>stm32f1xx_c8t6_mini.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../../../../../../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c</FilePath>
+              <FilePath>..\..\..\..\..\..\Drivers\BSP\STM32F1xx_c8t6_mini\stm32f1xx_c8t6_mini.c</FilePath>
             </File>
           </Files>
         </Group>
