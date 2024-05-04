@@ -22,6 +22,8 @@
 
 /* Private typedef ----------------------------------------------------------- */
 /* Private define ------------------------------------------------------------ */
+#define USB_DISCONNECT_PORT                 GPIOB
+#define USB_DISCONNECT_PIN                  GPIO_PIN_14
 /* Private macro ------------------------------------------------------------- */
 /* Private variables --------------------------------------------------------- */
 PCD_HandleTypeDef hpcd;
@@ -38,40 +40,50 @@ PCD_HandleTypeDef hpcd;
   * @param  hpcd: PCD handle
   * @retval None
   */
-void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
+void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
 {
-  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitTypeDef  GPIO_InitStruct;
 
-  /* Configure USB FS GPIOs */
+  /* Enable the GPIOA clock */
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /* Configure DM DP Pins */
+  /* Configure USB DM/DP pins */
   GPIO_InitStruct.Pin = (GPIO_PIN_11 | GPIO_PIN_12);
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /* Configure VBUS Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /* Enable the USB disconnect GPIO clock */
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /* Configure ID pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /* USB_DISCONNECT used as USB pull-up */
+  GPIO_InitStruct.Pin = USB_DISCONNECT_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  HAL_GPIO_Init(USB_DISCONNECT_PORT, &GPIO_InitStruct);
 
-  /* Enable USB OTG FS Clock */
-  __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+  /* Enable USB Clock */
+  __HAL_RCC_USB_CLK_ENABLE();
 
-  /* Set USBFS Interrupt priority */
-  HAL_NVIC_SetPriority(OTG_FS_IRQn, 6, 0);
+  if (hpcd->Init.low_power_enable == 1)
+  {
+    /* Enable EXTI for USB wakeup */
+    __HAL_USB_WAKEUP_EXTI_CLEAR_FLAG();
+    __HAL_USB_WAKEUP_EXTI_ENABLE_RISING_EDGE();
+    __HAL_USB_WAKEUP_EXTI_ENABLE_IT();
 
-  /* Enable USBFS Interrupt */
-  HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
+    /* USB Wakeup Interrupt */
+    HAL_NVIC_EnableIRQ(USBWakeUp_IRQn);
+
+    /* Enable USB Wake-up interrupt */
+    HAL_NVIC_SetPriority(USBWakeUp_IRQn, 0, 0);
+  }
+
+  /* Set USB Interrupt priority */
+  HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 5, 0);
+
+  /* Enable USB Interrupt */
+  HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
 }
 
 /**
@@ -82,7 +94,8 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
 void HAL_PCD_MspDeInit(PCD_HandleTypeDef * hpcd)
 {
   /* Disable USB OTG FS Clock */
-  __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+  //__HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+	__HAL_RCC_USB_CLK_DISABLE();
 }
 
 /*******************************************************************************
@@ -230,24 +243,25 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef * hpcd)
   * @param  pdev: Device handle
   * @retval USBD Status
   */
-USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef * pdev)
+USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 {
   /* Set LL Driver parameters */
-  hpcd.Instance = USB_OTG_FS;
-  hpcd.Init.dev_endpoints = 4;
-  hpcd.Init.low_power_enable = 0;
-  hpcd.Init.Sof_enable = 0;
+  hpcd.Instance = USB;
+  hpcd.Init.dev_endpoints = 8;
+  hpcd.Init.phy_itface = PCD_PHY_EMBEDDED;
   hpcd.Init.speed = PCD_SPEED_FULL;
-  hpcd.Init.vbus_sensing_enable = 1;
+  hpcd.Init.low_power_enable = 0;
+
   /* Link The driver to the stack */
   hpcd.pData = pdev;
   pdev->pData = &hpcd;
-  /* Initialize LL Driver */
-  HAL_PCD_Init(&hpcd);
 
-  HAL_PCDEx_SetRxFiFo(&hpcd, 0x80);
-  HAL_PCDEx_SetTxFiFo(&hpcd, 0, 0x40);
-  HAL_PCDEx_SetTxFiFo(&hpcd, 1, 0x80);
+  /* Initialize LL Driver */
+  HAL_PCD_Init((PCD_HandleTypeDef*)pdev->pData);
+
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x00 , PCD_SNG_BUF, 0x18);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x80 , PCD_SNG_BUF, 0x58);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x81 , PCD_SNG_BUF, 0x100);
 
   return USBD_OK;
 }

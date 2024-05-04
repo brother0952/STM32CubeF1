@@ -18,7 +18,7 @@
 
 /* Includes ------------------------------------------------------------------ */
 #include "stm32f1xx_hal.h"
-#include "stm3210c_eval.h"
+#include "stm32f1xx_c8t6_mini.h"
 #include "main.h"
 
 /** @addtogroup USBD_USER
@@ -57,8 +57,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef * huart)
   USARTx_RX_GPIO_CLK_ENABLE();
 
   /* Remap AFIO if needed */
-  AFIOCOMx_CLK_ENABLE(0);
-  AFIOCOMx_REMAP(0);
+//  AFIOCOMx_CLK_ENABLE(0);
+//  AFIOCOMx_REMAP(0);
 
   /* Enable USARTx clock */
   USARTx_CLK_ENABLE();
