@@ -23,7 +23,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f1xx_c8t6_mini.h"
+#include "stm32f1xx_zet6_byt.h"
 
 /** @addtogroup BSP
   * @{
@@ -68,13 +68,13 @@
 /** @defgroup STM32F1XX_NUCLEO_Private_Variables STM32F1XX NUCLEO Private Variables
   * @{
   */ 
-GPIO_TypeDef* LED_PORT[LEDn] = {LED2_GPIO_PORT};
+GPIO_TypeDef* LED_PORT[LEDn] = {LED1_GPIO_PORT,LED2_GPIO_PORT};
 
-const uint16_t LED_PIN[LEDn] = {LED2_PIN};
+const uint16_t LED_PIN[LEDn] = {LED1_PIN,LED2_PIN};
 
-GPIO_TypeDef* BUTTON_PORT[BUTTONn]  = {USER_BUTTON_GPIO_PORT}; 
-const uint16_t BUTTON_PIN[BUTTONn]  = {USER_BUTTON_PIN}; 
-const uint8_t  BUTTON_IRQn[BUTTONn] = {USER_BUTTON_EXTI_IRQn };
+GPIO_TypeDef* BUTTON_PORT[BUTTONn]  = {USER_BUTTON_GPIO_PORT,USER_BUTTON2_GPIO_PORT}; 
+const uint16_t BUTTON_PIN[BUTTONn]  = {USER_BUTTON_PIN,USER_BUTTON2_PIN}; 
+const uint8_t  BUTTON_IRQn[BUTTONn] = {USER_BUTTON_EXTI_IRQn,USER_BUTTON2_EXTI_IRQn };
 
 /**
  * @brief BUS variables
