@@ -20,6 +20,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+UART_HandleTypeDef UartHandle;
+#ifdef __GNUC__
+/* With GCC, small printf (option LD Linker->Libraries->Small printf
+   set to 'Yes') calls __io_putchar() */
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
 /** @addtogroup STM32F1xx_HAL_Examples
   * @{
   */
@@ -39,6 +47,25 @@ void SystemClock_Config(void);
 
 /* Private functions ---------------------------------------------------------*/
 
+
+static void Error_Handler(void)
+{
+  /* Turn LED3 on */
+  //BSP_LED_On(LED3);
+  while (1)
+  {
+  }
+}
+
+PUTCHAR_PROTOTYPE
+{
+  /* Place your implementation of fputc here */
+  /* e.g. write a character to the USART1 and Loop until the end of transmission */
+  HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, 0xFFFF);
+
+  return ch;
+}
+
 /**
   * @brief  Main program
   * @param  None
@@ -46,32 +73,91 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
-  /* STM32F103xG HAL library initialization */
+  /* This sample code shows how to use GPIO HAL API to toggle LED1, LED2, LED3 and LED4 IOs
+    in an infinite loop. */
+
+  /* STM32F103xG HAL library initialization:
+       - Configure the Flash prefetch
+       - Systick timer is configured by default as source of time base, but user 
+         can eventually implement his proper time base source (a general purpose 
+         timer for example or other time source), keeping in mind that Time base 
+         duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and 
+         handled in milliseconds basis.
+       - Set NVIC Group Priority to 4
+       - Low Level Initialization
+     */
   HAL_Init();
 
   /* Configure the system clock to 72 MHz */
   SystemClock_Config();
   
-  /* Enable GPIO Clock */
+  /* -1- Enable each GPIO Clock (to be able to program the configuration registers) */
+//  LED1_GPIO_CLK_ENABLE();
   LED2_GPIO_CLK_ENABLE();
+  //LED3_GPIO_CLK_ENABLE();
+  //LED4_GPIO_CLK_ENABLE();
 
-  /* Configure LED pin */
+  /* -2- Configure IOs in output push-pull mode to drive external LEDs */
   GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull  = GPIO_NOPULL;
+  GPIO_InitStruct.Pull  = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+
+  //GPIO_InitStruct.Pin = LED1_PIN;
+  //HAL_GPIO_Init(LED1_GPIO_PORT, &GPIO_InitStruct);
+
   GPIO_InitStruct.Pin = LED2_PIN;
   HAL_GPIO_Init(LED2_GPIO_PORT, &GPIO_InitStruct);
 
-  /* Turn on LED initially */
-  HAL_GPIO_WritePin(LED2_GPIO_PORT, LED2_PIN, GPIO_PIN_RESET);
+  //GPIO_InitStruct.Pin = LED3_PIN;
+  //HAL_GPIO_Init(LED3_GPIO_PORT, &GPIO_InitStruct);
 
-  /* Infinite loop */
+  //GPIO_InitStruct.Pin = LED4_PIN;
+  //HAL_GPIO_Init(LED4_GPIO_PORT, &GPIO_InitStruct);
+	
+	/*##-1- Configure the UART peripheral ######################################*/
+  /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
+  /* UART configured as follows:
+      - Word Length = 8 Bits (7 data bit + 1 parity bit) : BE CAREFUL : Program 7 data bits + 1 parity bit in PC HyperTerminal
+      - Stop Bit    = One Stop bit
+      - Parity      = ODD parity
+      - BaudRate    = 9600 baud
+      - Hardware flow control disabled (RTS and CTS signals) */
+  UartHandle.Instance        = USARTx;
+
+  UartHandle.Init.BaudRate   = 9600;
+  UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
+  UartHandle.Init.StopBits   = UART_STOPBITS_1;
+  //UartHandle.Init.Parity     = UART_PARITY_ODD;
+	UartHandle.Init.Parity     = UART_PARITY_NONE;
+  UartHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
+  UartHandle.Init.Mode       = UART_MODE_TX_RX;
+
+  if (HAL_UART_Init(&UartHandle) != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler();
+  }
+
+  /* Output a message on Hyperterminal using printf function */
+  printf("\n\r UART Printf Example: retarget the C library printf function to the UART\n\r");
+  printf("** Test finished successfully. ** \n\r");
+
+  /* -3- Toggle IOs in an infinite loop */
   while (1)
   {
-    HAL_GPIO_WritePin(LED2_GPIO_PORT, LED2_PIN, GPIO_PIN_RESET);  // 点亮LED
-    HAL_Delay(1000);  // 延时1秒
-    HAL_GPIO_WritePin(LED2_GPIO_PORT, LED2_PIN, GPIO_PIN_SET);    // 熄灭LED
-    HAL_Delay(1000);  // 延时1秒
+    //HAL_GPIO_TogglePin(LED1_GPIO_PORT, LED1_PIN);
+    /* Insert delay 100 ms */
+    //HAL_Delay(100);
+    HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
+    /* Insert delay 100 ms */
+    HAL_Delay(100);
+		printf("** Test finished successfully. ** \n\r");
+    //HAL_GPIO_TogglePin(LED3_GPIO_PORT, LED3_PIN);
+    /* Insert delay 100 ms */
+    //HAL_Delay(100);
+    //HAL_GPIO_TogglePin(LED4_GPIO_PORT, LED4_PIN);
+    /* Insert delay 100 ms */
+    //HAL_Delay(100);
   }
 }
 
@@ -122,6 +208,7 @@ void SystemClock_Config(void)
     while(1);
   }
 }
+
 
 #ifdef  USE_FULL_ASSERT
 
